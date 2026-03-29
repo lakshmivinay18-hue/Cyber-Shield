@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CyberShield - Cyber Crime Reporting Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #020812;
+      --surface: #040f1e;
+      --surface2: #071628;
+      --border: #0a3060;
+      --accent: #00d4ff;
+      --accent2: #ff3c6e;
+      --accent3: #00ff88;
+      --text: #c8e6ff;
+      --text-dim: #5a8ab0;
+      --glow: 0 0 20px rgba(0, 212, 255, 0.4);
+      --glow-red: 0 0 20px rgba(255, 60, 110, 0.4);
+      --glow-green: 0 0 15px rgba(0, 255, 136, 0.3);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* SCANLINE OVERLAY */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 212, 255, 0.015) 2px,
+        rgba(0, 212, 255, 0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+    /* ANIMATIONS */
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 10px rgba(0,212,255,0.3); }
+      50% { box-shadow: 0 0 30px rgba(0,212,255,0.7), 0 0 60px rgba(0,212,255,0.3); }
+    }
+    @keyframes flicker {
+      0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.4} 94%{opacity:1} 96%{opacity:0.6} 97%{opacity:1}
+    }
+    @keyframes slide-in-left {
+      from { transform: translateX(-60px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slide-in-up {
+      from { transform: translateY(40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes blink {
+      0%,100%{opacity:1} 50%{opacity:0}
+    }
+    @keyframes rotate {
+      from{transform:rotate(0deg)} to{transform:rotate(360deg)}
+    }
+    @keyframes matrix-fall {
+      0%{transform:translateY(-100%);opacity:0}
+      10%{opacity:1}
+      90%{opacity:1}
+      100%{transform:translateY(100vh);opacity:0}
+    }
+    @keyframes shimmer {
+      0%{background-position:-200% center}
+      100%{background-position:200% center}
+    }
+    @keyframes counter-up {
+      from{transform:translateY(20px);opacity:0}
+      to{transform:translateY(0);opacity:1}
+    }
+
+    /* NAVBAR */
+    .navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: rgba(2,8,18,0.92);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: 1.4rem;
+      color: var(--accent);
+      animation: flicker 8s infinite;
+      text-shadow: var(--glow);
+      letter-spacing: 2px;
+    }
+
+    .nav-logo span { color: var(--accent2); }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0;
+      width: 0; height: 2px;
+      background: var(--accent);
+      transition: width 0.3s;
+    }
+
+    .nav-links a:hover { color: var(--accent); }
+    .nav-links a:hover::after { width: 100%; }
+
+    .nav-emergency {
+      background: var(--accent2);
+      color: white;
+      border: none;
+      padding: 0.5rem 1.2rem;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+      animation: pulse-glow 2s infinite;
+      letter-spacing: 1px;
+    }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      padding-top: 70px;
+    }
+
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.05) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+
+    .hero-content {
+      text-align: center;
+      z-index: 2;
+      padding: 2rem;
+      animation: slide-in-up 0.8s ease;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,60,110,0.1);
+      border: 1px solid var(--accent2);
+      color: var(--accent2);
+      padding: 0.3rem 1rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      margin-bottom: 1.5rem;
+      letter-spacing: 2px;
+    }
+
+    .hero h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 50%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 1.2rem;
+      color: var(--text-dim);
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 0.9rem 2.5rem;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+      transition: all 0.3s;
+      letter-spacing: 1px;
+    }
+
+    .btn-primary:hover {
+      background: #fff;
+      box-shadow: var(--glow);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 0.9rem 2.5rem;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+      transition: all 0.3s;
+      letter-spacing: 1px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(0,212,255,0.1);
+      box-shadow: var(--glow);
+      transform: translateY(-2px);
+    }
+
+    /* STATS BAR */
+    .stats-bar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .stat-item {
+      text-align: center;
+      animation: counter-up 0.6s ease both;
+    }
+
+    .stat-num {
+      font-family: 'Orbitron', monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-shadow: var(--glow);
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* SECTIONS */
+    .section {
+      padding: 5rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      text-shadow: var(--glow);
+    }
+
+    .section-line {
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      margin-bottom: 2.5rem;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 0.6rem 1.5rem;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .tab-btn.active {
+      background: rgba(0,212,255,0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: var(--glow);
+    }
+
+    .tab-btn:hover:not(.active) {
+      border-color: var(--text-dim);
+      color: var(--text);
+    }
+
+    /* FORM */
+    .complaint-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .complaint-form::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px; height: 100%;
+      background: linear-gradient(180deg, var(--accent), var(--accent2));
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .required { color: var(--accent2); }
+
+    .form-input, .form-select, .form-textarea {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.75rem 1rem;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.3s;
+      width: 100%;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0,212,255,0.1);
+    }
+
+    .form-input.error, .form-select.error, .form-textarea.error {
+      border-color: var(--accent2);
+    }
+
+    .error-msg {
+      font-size: 0.78rem;
+      color: var(--accent2);
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .form-textarea { resize: vertical; min-height: 120px; }
+
+    .form-select option { background: var(--surface2); }
+
+    /* UPLOAD ZONE */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(0,212,255,0.05);
+    }
+
+    .upload-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .upload-text { color: var(--text-dim); font-size: 0.9rem; }
+    .upload-text span { color: var(--accent); }
+
+    .file-previews {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .file-preview {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .file-preview-img {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+    }
+
+    .remove-file {
+      background: none;
+      border: none;
+      color: var(--accent2);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    /* SUBMIT BTN */
+    .submit-btn {
+      margin-top: 2rem;
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--accent), #0099cc);
+      color: var(--bg);
+      border: none;
+      font-family: 'Orbitron', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--glow);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* SUCCESS MODAL */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      backdrop-filter: blur(5px);
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--accent3);
+      padding: 3rem 2.5rem;
+      text-align: center;
+      max-width: 450px;
+      width: 90%;
+      box-shadow: var(--glow-green);
+      animation: slide-in-up 0.4s ease;
+    }
+
+    .modal-icon { font-size: 4rem; margin-bottom: 1rem; }
+
+    .modal-title {
+      font-family: 'Orbitron', monospace;
+      color: var(--accent3);
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+
+    .modal-id {
+      font-family: 'Share Tech Mono', monospace;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      margin: 1rem 0;
+      color: var(--accent);
+      font-size: 1.1rem;
+    }
+
+    .modal-close {
+      margin-top: 1.5rem;
+      padding: 0.75rem 2rem;
+      background: var(--accent3);
+      color: var(--bg);
+      border: none;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* TRACKER */
+    .tracker-input-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .tracker-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.75rem 1rem;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    .tracker-input:focus { border-color: var(--accent); }
+
+    .track-btn {
+      padding: 0.75rem 2rem;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      letter-spacing: 1px;
+    }
+
+    .track-btn:hover { box-shadow: var(--glow); }
+
+    .tracker-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      animation: slide-in-up 0.4s ease;
+    }
+
+    .tracker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .tracker-id {
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--accent);
+      font-size: 1rem;
+    }
+
+    .status-badge {
+      padding: 0.4rem 1rem;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .status-filed { background: rgba(0,212,255,0.15); color: var(--accent); border: 1px solid var(--accent); }
+    .status-review { background: rgba(255,165,0,0.15); color: #ffa500; border: 1px solid #ffa500; }
+    .status-action { background: rgba(0,255,136,0.15); color: var(--accent3); border: 1px solid var(--accent3); }
+
+    /* TIMELINE */
+    .timeline {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      margin: 2rem 0;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 20px; left: 10%; right: 10%;
+      height: 2px;
+      background: var(--border);
+    }
+
+    .timeline-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      z-index: 1;
+      flex: 1;
+    }
+
+    .timeline-dot {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      transition: all 0.5s;
+    }
+
+    .timeline-dot.active {
+      border-color: var(--accent3);
+      background: rgba(0,255,136,0.1);
+      box-shadow: var(--glow-green);
+    }
+
+    .timeline-dot.current {
+      border-color: var(--accent);
+      background: rgba(0,212,255,0.1);
+      box-shadow: var(--glow);
+      animation: pulse-glow 1.5s infinite;
+    }
+
+    .timeline-label {
+      font-size: 0.75rem;
+      text-align: center;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .timeline-label.active { color: var(--accent3); }
+    .timeline-label.current { color: var(--accent); }
+
+    /* SCAM ALERTS */
+    .alerts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .alert-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .alert-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 3px;
+    }
+
+    .alert-card.high::before { background: var(--accent2); }
+    .alert-card.medium::before { background: #ffa500; }
+    .alert-card.low::before { background: var(--accent3); }
+
+    .alert-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .alert-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .alert-category {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid;
+    }
+
+    .alert-category.phishing { color: var(--accent2); border-color: var(--accent2); background: rgba(255,60,110,0.1); }
+    .alert-category.upi { color: #ffa500; border-color: #ffa500; background: rgba(255,165,0,0.1); }
+    .alert-category.identity { color: var(--accent); border-color: var(--accent); background: rgba(0,212,255,0.1); }
+    .alert-category.malware { color: var(--accent3); border-color: var(--accent3); background: rgba(0,255,136,0.1); }
+
+    .severity-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+
+    .severity-dot.high { background: var(--accent2); box-shadow: var(--glow-red); }
+    .severity-dot.medium { background: #ffa500; }
+    .severity-dot.low { background: var(--accent3); }
+
+    .alert-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      line-height: 1.3;
+    }
+
+    .alert-desc {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+
+    .alert-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .alert-reports { color: var(--accent2); font-weight: 600; }
+
+    /* FILTER BAR */
+    .filter-bar {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-label {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .filter-btn {
+      padding: 0.4rem 1rem;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-btn.active {
+      background: rgba(0,212,255,0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .filter-btn:hover:not(.active) { border-color: var(--text-dim); }
+
+    /* DASHBOARD */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .dash-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .dash-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-3px);
+    }
+
+    .dash-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 3px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+    }
+
+    .dash-card-icon { font-size: 2rem; margin-bottom: 0.75rem; }
+
+    .dash-card-num {
+      font-family: 'Orbitron', monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+    }
+
+    .dash-card-label {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .dash-card-trend {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      font-size: 0.75rem;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .trend-up { color: var(--accent3); }
+    .trend-down { color: var(--accent2); }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 2rem;
+    }
+
+    .chart-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+    }
+
+    .chart-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.9rem;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      letter-spacing: 1px;
+    }
+
+    /* FOOTER */
+    .footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem 1.5rem;
+      margin-top: 5rem;
+    }
+
+    .footer-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 3rem;
+      margin-bottom: 2rem;
+    }
+
+    .footer-brand {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .footer-desc {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    .footer-heading {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 1rem;
+    }
+
+    .footer-links {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .footer-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--accent); }
+
+    .footer-bottom {
+      max-width: 1200px;
+      margin: 0 auto;
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-copy {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .helpline {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.9rem;
+      color: var(--accent2);
+    }
+
+    /* LIVE DOT */
+    .live-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      background: var(--accent3);
+      border-radius: 50%;
+      animation: pulse-glow 1.5s infinite;
+      margin-right: 6px;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .timeline { flex-direction: column; gap: 1.5rem; }
+      .timeline::before { display: none; }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-dim);
+    }
+
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-text { font-size: 1rem; }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--border);
+      margin-top: 1rem;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 1s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ─── DATA ────────────────────────────────────────────────────────────────
+    const SCAM_ALERTS = [
+      { id: 1, title: "Fake KYC SMS Targeting SBI Users", category: "phishing", severity: "high", desc: "Fraudsters sending bulk SMS claiming SBI account suspension, redirecting to phishing pages to steal credentials and OTPs.", reports: 2847, date: "2025-07-02", location: "Pan India" },
+      { id: 2, title: "UPI QR Code Reversal Scam", category: "upi", severity: "high", desc: "Scammers post fake QR codes on OLX/Facebook Marketplace. Victims scan and PAY instead of receiving money.", reports: 1923, date: "2025-07-01", location: "Metro Cities" },
+      { id: 3, title: "Aadhaar-Linked SIM Swap Attack", category: "identity", severity: "high", desc: "Using leaked Aadhaar data to port victim's mobile number to attacker's SIM, enabling OTP fraud and account takeover.", reports: 764, date: "2025-06-30", location: "Delhi, Mumbai" },
+      { id: 4, title: "Loan App Malware on Play Store", category: "malware", severity: "medium", desc: "Predatory loan apps collecting contacts, photos and media. Using harvested data for harassment if EMI delayed.", reports: 4312, date: "2025-06-29", location: "All States" },
+      { id: 5, title: "Courier Parcel Arrest Scam", category: "phishing", severity: "medium", desc: "Callers impersonate FedEx/TRAI/CBI claiming illegal parcel. Demand money for 'case settlement'. Digital arrest threat.", reports: 3201, date: "2025-06-28", location: "Pan India" },
+      { id: 6, title: "WhatsApp Job Offer Fraud", category: "upi", severity: "low", desc: "Fake international companies offering WFH jobs. Tasks involve liking YouTube videos then paying to 'unlock higher commissions'.", reports: 891, date: "2025-06-27", location: "Tier 2 Cities" },
+    ];
+
+    const MOCK_COMPLAINTS = {
+      "CS-2025-8471": { category: "UPI Fraud", amount: "₹45,000", filed: "2025-06-20", status: 1, updates: ["Complaint registered and assigned to Cyber Cell", "Bank transaction details verified"] },
+      "CS-2025-6234": { category: "Phishing", amount: "N/A", filed: "2025-06-15", status: 2, updates: ["Complaint registered", "Investigation initiated", "Action taken against identified account"] },
+      "CS-2025-9912": { category: "Identity Theft", amount: "₹1,20,000", filed: "2025-06-10", status: 0, updates: ["Complaint registered and assigned ID"] },
+    };
+
+    const CATEGORIES = ["All", "Phishing", "UPI Fraud", "Identity Theft", "Malware", "Sextortion", "Cyberbullying"];
+
+    // ─── NAVBAR ──────────────────────────────────────────────────────────────
+    function Navbar({ activeSection, setActiveSection }) {
+      return (
+        <nav className="navbar">
+          <div className="nav-logo">CYBER<span>SHIELD</span></div>
+          <ul className="nav-links">
+            {["home","report","track","alerts","dashboard"].map(s => (
+              <li key={s}>
+                <a href="#" onClick={e => { e.preventDefault(); setActiveSection(s); }}>
+                  {s.toUpperCase()}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <button className="nav-emergency" onClick={() => alert("National Cyber Crime Helpline: 1930")}>
+            📞 HELPLINE: 1930
+          </button>
+        </nav>
+      );
+    }
+
+    // ─── HERO ─────────────────────────────────────────────────────────────────
+    function Hero({ setActiveSection }) {
+      const [count, setCount] = useState({ complaints: 0, resolved: 0, amount: 0 });
+      useEffect(() => {
+        const target = { complaints: 1284763, resolved: 98423, amount: 547 };
+        let frame = 0;
+        const total = 80;
+        const timer = setInterval(() => {
+          frame++;
+          const prog = frame / total;
+          setCount({
+            complaints: Math.floor(target.complaints * prog),
+            resolved: Math.floor(target.resolved * prog),
+            amount: Math.floor(target.amount * prog),
+          });
+          if (frame >= total) clearInterval(timer);
+        }, 20);
+        return () => clearInterval(timer);
+      }, []);
+
+      return (
+        <>
+          <div className="hero" id="home">
+            <div className="hero-grid"></div>
+            <div className="hero-content">
+              <div className="hero-badge">🛡️ GOVERNMENT OF INDIA | MINISTRY OF HOME AFFAIRS</div>
+              <h1>India's Cyber Crime<br/>Reporting Portal</h1>
+              <p className="hero-sub">
+                Report digital fraud, phishing, UPI scams, and cyber threats. 
+                Protecting citizens in the digital age — because every complaint counts.
+              </p>
+              <div className="hero-buttons">
+                <button className="btn-primary" onClick={() => setActiveSection("report")}>
+                  🚨 FILE A COMPLAINT
+                </button>
+                <button className="btn-secondary" onClick={() => setActiveSection("track")}>
+                  🔍 TRACK STATUS
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="stats-bar">
+            <div className="stat-item">
+              <div className="stat-num">{count.complaints.toLocaleString()}</div>
+              <div className="stat-label">Total Complaints Filed</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-num">{count.resolved.toLocaleString()}</div>
+              <div className="stat-label">Cases Resolved</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-num">₹{count.amount}Cr+</div>
+              <div className="stat-label">Amount Frozen</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-num">1930</div>
+              <div className="stat-label">National Helpline</div>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    // ─── COMPLAINT FORM ───────────────────────────────────────────────────────
+    function ComplaintForm() {
+      const [form, setForm] = useState({
+        name: "", email: "", phone: "", aadhar: "",
+        category: "", subtype: "", description: "", amount: "",
+        bankName: "", accountNo: "", transactionId: "", incidentDate: "",
+        suspectInfo: "", state: "",
+      });
+      const [errors, setErrors] = useState({});
+      const [files, setFiles] = useState([]);
+      const [previews, setPreviews] = useState([]);
+      const [submitted, setSubmitted] = useState(false);
+      const [complaintId, setComplaintId] = useState("");
+      const [submitting, setSubmitting] = useState(false);
+      const [drag, setDrag] = useState(false);
+      const fileRef = useRef();
+
+      const validate = () => {
+        const e = {};
+        if (!form.name.trim()) e.name = "Full name is required";
+        if (!form.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) e.email = "Valid email required";
+        if (!form.phone.match(/^[6-9]\d{9}$/)) e.phone = "Valid 10-digit Indian mobile required";
+        if (!form.category) e.category = "Please select a crime category";
+        if (!form.description || form.description.length < 50) e.description = "Please provide at least 50 characters describing the incident";
+        if (!form.incidentDate) e.incidentDate = "Incident date is required";
+        if (!form.state) e.state = "Please select your state";
+        return e;
+      };
+
+      const handleChange = (field) => (e) => {
+        setForm(f => ({ ...f, [field]: e.target.value }));
+        setErrors(er => { const n = { ...er }; delete n[field]; return n; });
+      };
+
+      const handleFiles = (newFiles) => {
+        const arr = Array.from(newFiles).slice(0, 5 - files.length);
+        const newPreviews = arr.map(f => ({
+          name: f.name,
+          url: f.type.startsWith('image/') ? URL.createObjectURL(f) : null,
+          type: f.type,
+          size: (f.size / 1024).toFixed(1) + " KB"
+        }));
+        setFiles(prev => [...prev, ...arr]);
+        setPreviews(prev => [...prev, ...newPreviews]);
+      };
+
+      const removeFile = (i) => {
+        setFiles(f => f.filter((_, idx) => idx !== i));
+        setPreviews(p => p.filter((_, idx) => idx !== i));
+      };
+
+      const handleSubmit = async () => {
+        const e = validate();
+        if (Object.keys(e).length > 0) { setErrors(e); return; }
+        setSubmitting(true);
+        await new Promise(r => setTimeout(r, 2000));
+        const id = "CS-" + new Date().getFullYear() + "-" + Math.floor(Math.random() * 9000 + 1000);
+        setComplaintId(id);
+        setSubmitting(false);
+        setSubmitted(true);
+      };
+
+      const states = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Delhi","Jammu & Kashmir","Ladakh","Chandigarh","Puducherry"];
+
+      return (
+        <div className="section" id="report">
+          <div className="section-title">🚨 File a Complaint</div>
+          <div className="section-line"></div>
+
+          <div className="complaint-form">
+            {/* Personal Info */}
+            <div style={{marginBottom:'2rem'}}>
+              <div style={{fontFamily:'Orbitron,monospace',fontSize:'0.85rem',color:'var(--accent)',marginBottom:'1rem',letterSpacing:'1px'}}>
+                ▶ PERSONAL INFORMATION
+              </div>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="form-label">Full Name <span className="required">*</span></label>
+                  <input className={`form-input ${errors.name ? 'error':''}`} placeholder="As per Aadhaar" value={form.name} onChange={handleChange('name')} />
+                  {errors.name && <span className="error-msg">⚠ {errors.name}</span>}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email Address <span className="required">*</span></label>
+                  <input className={`form-input ${errors.email ? 'error':''}`} placeholder="your@email.com" value={form.email} onChange={handleChange('email')} />
+                  {errors.email && <span className="error-msg">⚠ {errors.email}</span>}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Mobile Number <span className="required">*</span></label>
+                  <input className={`form-input ${errors.phone ? 'error':''}`} placeholder="10-digit mobile" value={form.phone} onChange={handleChange('phone')} maxLength={10} />
+                  {errors.phone && <span className="error-msg">⚠ {errors.phone}</span>}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">State <span className="required">*</span></label>
+                  <select className={`form-select ${errors.state ? 'error':''}`} value={form.state} onChange={handleChange('state')}>
+                    <option value="">-- Select State --</option>
+                    {states.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  {errors.state && <span className="error-msg">⚠ {errors.state}</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Crime Info */}
+            <div style={{marginBottom:'2rem'}}>
+              <div style={{fontFamily:'Orbitron,monospace',fontSize:'0.85rem',color:'var(--accent)',marginBottom:'1rem',letterSpacing:'1px'}}>
+                ▶ CRIME DETAILS
+              </div>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="form-label">Crime Category <span className="required">*</span></label>
+                  <select className={`form-select ${errors.category ? 'error':''}`} value={form.category} onChange={handleChange('category')}>
+                    <option value="">-- Select Category --</option>
+                    <option>UPI / Online Banking Fraud</option>
+                    <option>Phishing / Vishing</option>
+                    <option>Identity Theft</option>
+                    <option>Cyberbullying / Harassment</option>
+                    <option>Sextortion / Blackmail</option>
+                    <option>Malware / Ransomware</option>
+                    <option>Social Media Account Hack</option>
+                    <option>Job / Investment Fraud</option>
+                    <option>Other</option>
+                  </select>
+                  {errors.category && <span className="error-msg">⚠ {errors.category}</span>}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Date of Incident <span className="required">*</span></label>
+                  <input type="date" className={`form-input ${errors.incidentDate ? 'error':''}`} value={form.incidentDate} onChange={handleChange('incidentDate')} max={new Date().toISOString().split('T')[0]} />
+                  {errors.incidentDate && <span className="error-msg">⚠ {errors.incidentDate}</span>}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Financial Loss Amount (₹)</label>
+                  <input className="form-input" placeholder="0 if no financial loss" value={form.amount} onChange={handleChange('amount')} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Transaction ID / Reference</label>
+                  <input className="form-input" placeholder="UPI/NEFT/IMPS ref number" value={form.transactionId} onChange={handleChange('transactionId')} />
+                </div>
+                <div className="form-group full">
+                  <label className="form-label">Describe the Incident <span className="required">*</span></label>
+                  <textarea className={`form-textarea ${errors.description ? 'error':''}`} placeholder="Provide a detailed description: What happened, when, how much was lost, what platform was used... (minimum 50 characters)" value={form.description} onChange={handleChange('description')} rows={5} />
+                  <div style={{display:'flex',justifyContent:'space-between'}}>
+                    {errors.description ? <span className="error-msg">⚠ {errors.description}</span> : <span/>}
+                    <span style={{fontSize:'0.75rem',color:'var(--text-dim)',fontFamily:'Share Tech Mono,monospace'}}>{form.description.length} chars</span>
+                  </div>
+                </div>
+                <div className="form-group full">
+                  <label className="form-label">Suspect Information (if known)</label>
+                  <textarea className="form-textarea" placeholder="Any details about the suspect: phone number, email, social media handle, account number used by fraudster..." value={form.suspectInfo} onChange={handleChange('suspectInfo')} rows={3} />
+                </div>
+              </div>
+            </div>
+
+            {/* Evidence Upload */}
+            <div style={{marginBottom:'2rem'}}>
+              <div style={{fontFamily:'Orbitron,monospace',fontSize:'0.85rem',color:'var(--accent)',marginBottom:'1rem',letterSpacing:'1px'}}>
+                ▶ EVIDENCE UPLOAD (Max 5 files)
+              </div>
+              <div
+                className={`upload-zone ${drag ? 'drag-over' : ''}`}
+                onClick={() => fileRef.current.click()}
+                onDragOver={e => { e.preventDefault(); setDrag(true); }}
+                onDragLeave={() => setDrag(false)}
+                onDrop={e => { e.preventDefault(); setDrag(false); handleFiles(e.dataTransfer.files); }}
+              >
+                <div className="upload-icon">📎</div>
+                <div className="upload-text">
+                  <span>Click to upload</span> or drag & drop evidence files<br/>
+                  Screenshots, PDFs, Bank Statements (Max 5MB each)
+                </div>
+                <input ref={fileRef} type="file" multiple accept="image/*,.pdf,.doc,.docx" style={{display:'none'}} onChange={e => handleFiles(e.target.files)} />
+              </div>
+
+              {previews.length > 0 && (
+                <div className="file-previews">
+                  {previews.map((p, i) => (
+                    <div key={i} className="file-preview">
+                      {p.url ? <img src={p.url} alt={p.name} className="file-preview-img"/> : <span>📄</span>}
+                      <div>
+                        <div style={{fontSize:'0.8rem',color:'var(--text)',maxWidth:'120px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</div>
+                        <div style={{fontSize:'0.7rem',color:'var(--text-dim)'}}>{p.size}</div>
+                      </div>
+                      <button className="remove-file" onClick={() => removeFile(i)}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button className="submit-btn" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? "⏳ SUBMITTING COMPLAINT..." : "🚀 SUBMIT COMPLAINT"}
+            </button>
+          </div>
+
+          {submitted && (
+            <div className="modal-overlay" onClick={() => setSubmitted(false)}>
+              <div className="modal" onClick={e => e.stopPropagation()}>
+                <div className="modal-icon">✅</div>
+                <div className="modal-title">COMPLAINT FILED SUCCESSFULLY</div>
+                <p style={{color:'var(--text-dim)',fontSize:'0.9rem'}}>Your complaint has been registered. Note your complaint ID:</p>
+                <div className="modal-id">{complaintId}</div>
+                <p style={{color:'var(--text-dim)',fontSize:'0.85rem',lineHeight:'1.6'}}>
+                  An SMS confirmation will be sent to your registered mobile.<br/>
+                  Our cyber cell will respond within <strong style={{color:'var(--accent)'}}>24-48 hours</strong>.
+                </p>
+                <button className="modal-close" onClick={() => setSubmitted(false)}>CLOSE</button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── TRACKER ──────────────────────────────────────────────────────────────
+    function ComplaintTracker() {
+      const [input, setInput] = useState("");
+      const [result, setResult] = useState(null);
+      const [notFound, setNotFound] = useState(false);
+      const [loading, setLoading] = useState(false);
+
+      const STEPS = ["Filed", "Under Review", "Action Taken"];
+      const STEP_ICONS = ["📋", "🔍", "⚖️"];
+
+      const handleTrack = async () => {
+        if (!input.trim()) return;
+        setLoading(true); setNotFound(false); setResult(null);
+        await new Promise(r => setTimeout(r, 1200));
+        const found = MOCK_COMPLAINTS[input.trim().toUpperCase()];
+        if (found) setResult({ ...found, id: input.trim().toUpperCase() });
+        else setNotFound(true);
+        setLoading(false);
+      };
+
+      return (
+        <div className="section" id="track">
+          <div className="section-title">🔍 Track Complaint Status</div>
+          <div className="section-line"></div>
+
+          <div className="tracker-input-row">
+            <input
+              className="tracker-input"
+              placeholder="Enter Complaint ID (e.g. CS-2025-8471)"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleTrack()}
+            />
+            <button className="track-btn" onClick={handleTrack} disabled={loading}>
+              {loading ? "SEARCHING..." : "TRACK"}
+            </button>
+          </div>
+
+          <div style={{fontSize:'0.8rem',color:'var(--text-dim)',marginBottom:'1.5rem',fontFamily:'Share Tech Mono,monospace'}}>
+            💡 Try: CS-2025-8471 | CS-2025-6234 | CS-2025-9912
+          </div>
+
+          {result && (
+            <div className="tracker-card">
+              <div className="tracker-header">
+                <div>
+                  <div className="tracker-id">#{result.id}</div>
+                  <div style={{color:'var(--text-dim)',fontSize:'0.85rem',marginTop:'0.25rem'}}>
+                    {result.category} • Filed: {result.filed}
+                    {result.amount !== "N/A" && <span> • Loss: {result.amount}</span>}
+                  </div>
+                </div>
+                <div className={`status-badge ${['status-filed','status-review','status-action'][result.status]}`}>
+                  {STEPS[result.status]}
+                </div>
+              </div>
+
+              <div className="timeline">
+                {STEPS.map((step, i) => (
+                  <div className="timeline-step" key={step}>
+                    <div className={`timeline-dot ${i < result.status ? 'active' : i === result.status ? 'current' : ''}`}>
+                      {STEP_ICONS[i]}
+                    </div>
+                    <div className={`timeline-label ${i < result.status ? 'active' : i === result.status ? 'current' : ''}`}>
+                      {step}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${(result.status / 2) * 100}%` }}></div>
+              </div>
+
+              <div style={{marginTop:'1.5rem'}}>
+                <div style={{fontFamily:'Orbitron,monospace',fontSize:'0.8rem',color:'var(--accent)',marginBottom:'1rem',letterSpacing:'1px'}}>CASE UPDATES</div>
+                {result.updates.map((u, i) => (
+                  <div key={i} style={{display:'flex',gap:'1rem',marginBottom:'0.75rem',alignItems:'flex-start'}}>
+                    <div style={{width:'8px',height:'8px',borderRadius:'50%',background:'var(--accent)',marginTop:'6px',flexShrink:0}}></div>
+                    <div style={{fontSize:'0.9rem',color:'var(--text-dim)'}}>{u}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {notFound && (
+            <div className="empty-state">
+              <div className="empty-icon">🔎</div>
+              <div className="empty-text" style={{color:'var(--accent2)'}}>No complaint found with this ID</div>
+              <div style={{fontSize:'0.85rem',marginTop:'0.5rem'}}>Please check the ID and try again, or call 1930</div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── SCAM ALERTS ──────────────────────────────────────────────────────────
+    function ScamAlerts() {
+      const [filter, setFilter] = useState("All");
+      const filters = ["All", "Phishing", "UPI Fraud", "Identity", "Malware"];
+
+      const filtered = filter === "All" ? SCAM_ALERTS : SCAM_ALERTS.filter(a => {
+        if (filter === "Phishing") return a.category === "phishing";
+        if (filter === "UPI Fraud") return a.category === "upi";
+        if (filter === "Identity") return a.category === "identity";
+        if (filter === "Malware") return a.category === "malware";
+        return true;
+      });
+
+      return (
+        <div className="section" id="alerts">
+          <div className="section-title">
+            <span className="live-dot"></span>
+            Recent Scam Alerts
+          </div>
+          <div className="section-line"></div>
+
+          <div className="filter-bar">
+            <span className="filter-label">Filter:</span>
+            {filters.map(f => (
+              <button key={f} className={`filter-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>{f}</button>
+            ))}
+          </div>
+
+          <div className="alerts-grid">
+            {filtered.map(alert => (
+              <div key={alert.id} className={`alert-card ${alert.severity}`}>
+                <div className="alert-header">
+                  <span className={`alert-category ${alert.category}`}>
+                    {alert.category === 'upi' ? 'UPI FRAUD' : alert.category.toUpperCase()}
+                  </span>
+                  <div className={`severity-dot ${alert.severity}`}></div>
+                </div>
+                <div className="alert-title">{alert.title}</div>
+                <div className="alert-desc">{alert.desc}</div>
+                <div className="alert-footer">
+                  <span>📍 {alert.location}</span>
+                  <span className="alert-reports">🚨 {alert.reports.toLocaleString()} reports</span>
+                </div>
+                <div style={{marginTop:'0.75rem',fontSize:'0.75rem',color:'var(--text-dim)',fontFamily:'Share Tech Mono,monospace'}}>
+                  {alert.date}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ─── DASHBOARD ────────────────────────────────────────────────────────────
+    function Dashboard() {
+      const barRef = useRef();
+      const doughnutRef = useRef();
+      const lineRef = useRef();
+      const barChart = useRef();
+      const doughnutChart = useRef();
+      const lineChart = useRef();
+
+      useEffect(() => {
+        // Bar Chart
+        if (barChart.current) barChart.current.destroy();
+        barChart.current = new Chart(barRef.current, {
+          type: 'bar',
+          data: {
+            labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul'],
+            datasets: [{
+              label: 'Complaints Filed',
+              data: [8423, 9102, 10547, 11234, 13089, 14502, 15847],
+              backgroundColor: 'rgba(0,212,255,0.3)',
+              borderColor: 'rgba(0,212,255,0.8)',
+              borderWidth: 2,
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#5a8ab0' } } },
+            scales: {
+              x: { ticks: { color: '#5a8ab0' }, grid: { color: 'rgba(10,48,96,0.5)' } },
+              y: { ticks: { color: '#5a8ab0' }, grid: { color: 'rgba(10,48,96,0.5)' } }
+            }
+          }
+        });
+
+        // Doughnut Chart
+        if (doughnutChart.current) doughnutChart.current.destroy();
+        doughnutChart.current = new Chart(doughnutRef.current, {
+          type: 'doughnut',
+          data: {
+            labels: ['UPI Fraud','Phishing','Identity Theft','Malware','Other'],
+            datasets: [{
+              data: [38, 27, 15, 12, 8],
+              backgroundColor: ['rgba(0,212,255,0.7)','rgba(255,60,110,0.7)','rgba(0,255,136,0.7)','rgba(255,165,0,0.7)','rgba(150,150,150,0.5)'],
+              borderColor: '#020812',
+              borderWidth: 3,
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#5a8ab0', padding: 15, font: { size: 11 } } }
+            }
+          }
+        });
+
+        // Line Chart
+        if (lineChart.current) lineChart.current.destroy();
+        lineChart.current = new Chart(lineRef.current, {
+          type: 'line',
+          data: {
+            labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul'],
+            datasets: [
+              {
+                label: 'Amount Frozen (₹ Cr)',
+                data: [42, 58, 71, 89, 103, 134, 156],
+                borderColor: 'rgba(0,255,136,0.8)',
+                backgroundColor: 'rgba(0,255,136,0.05)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+              },
+              {
+                label: 'Cases Resolved',
+                data: [1200, 1450, 1800, 2100, 2450, 2900, 3200],
+                borderColor: 'rgba(255,60,110,0.8)',
+                backgroundColor: 'rgba(255,60,110,0.05)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#5a8ab0' } } },
+            scales: {
+              x: { ticks: { color: '#5a8ab0' }, grid: { color: 'rgba(10,48,96,0.5)' } },
+              y: { ticks: { color: '#5a8ab0' }, grid: { color: 'rgba(10,48,96,0.5)' } }
+            }
+          }
+        });
+
+        return () => {
+          barChart.current?.destroy();
+          doughnutChart.current?.destroy();
+          lineChart.current?.destroy();
+        };
+      }, []);
+
+      return (
+        <div className="section" id="dashboard">
+          <div className="section-title">📊 Statistics Dashboard</div>
+          <div className="section-line"></div>
+
+          <div className="dashboard-grid">
+            {[
+              { icon: '📥', num: '15,847', label: 'Complaints This Month', trend: '+12%', up: true },
+              { icon: '✅', num: '3,214', label: 'Cases Resolved', trend: '+18%', up: true },
+              { icon: '🏦', num: '₹156 Cr', label: 'Amount Frozen', trend: '+23%', up: true },
+              { icon: '⚡', num: '4.2h', label: 'Avg. Response Time', trend: '-0.8h', up: true },
+              { icon: '🚨', num: '47', label: 'Active Scam Alerts', trend: '+5', up: false },
+              { icon: '🌐', num: '28', label: 'States Covered', trend: '100%', up: true },
+            ].map((card, i) => (
+              <div className="dash-card" key={i}>
+                <div className="dash-card-icon">{card.icon}</div>
+                <div className="dash-card-num">{card.num}</div>
+                <div className="dash-card-label">{card.label}</div>
+                <div className={`dash-card-trend ${card.up ? 'trend-up' : 'trend-down'}`}>{card.trend}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="charts-grid">
+            <div className="chart-box">
+              <div className="chart-title">📈 MONTHLY COMPLAINT VOLUME</div>
+              <canvas ref={barRef}></canvas>
+            </div>
+            <div className="chart-box">
+              <div className="chart-title">🥧 CRIME CATEGORY BREAKDOWN</div>
+              <canvas ref={doughnutRef}></canvas>
+            </div>
+            <div className="chart-box" style={{gridColumn:'1/-1'}}>
+              <div className="chart-title">📉 RESOLUTION TREND & AMOUNT FROZEN</div>
+              <canvas ref={lineRef}></canvas>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── FOOTER ───────────────────────────────────────────────────────────────
+    function Footer() {
+      return (
+        <footer className="footer">
+          <div className="footer-grid">
+            <div>
+              <div className="footer-brand">CYBERSHIELD</div>
+              <div className="footer-desc">
+                India's official cyber crime reporting and awareness portal. 
+                Operated under the Ministry of Home Affairs, Government of India.
+              </div>
+            </div>
+            <div>
+              <div className="footer-heading">Quick Links</div>
+              <ul className="footer-links">
+                <li><a href="#">File Complaint</a></li>
+                <li><a href="#">Track Status</a></li>
+                <li><a href="#">Scam Alerts</a></li>
+                <li><a href="#">Awareness Hub</a></li>
+              </ul>
+            </div>
+            <div>
+              <div className="footer-heading">Crime Types</div>
+              <ul className="footer-links">
+                <li><a href="#">UPI/Banking Fraud</a></li>
+                <li><a href="#">Phishing / Vishing</a></li>
+                <li><a href="#">Identity Theft</a></li>
+                <li><a href="#">Cyberbullying</a></li>
+              </ul>
+            </div>
+            <div>
+              <div className="footer-heading">Help & Support</div>
+              <ul className="footer-links">
+                <li><a href="#">FAQ</a></li>
+                <li><a href="#">Contact Us</a></li>
+                <li><a href="#">Privacy Policy</a></li>
+                <li><a href="#">Terms of Service</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <div className="footer-copy">© 2025 CyberShield | Government of India | All Rights Reserved</div>
+            <div className="helpline">🆘 EMERGENCY HELPLINE: 1930</div>
+          </div>
+        </footer>
+      );
+    }
+
+    // ─── APP ──────────────────────────────────────────────────────────────────
+    function App() {
+      const [activeSection, setActiveSection] = useState("home");
+
+      const scrollTo = (id) => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+      };
+
+      useEffect(() => {
+        if (activeSection !== "home") scrollTo(activeSection);
+      }, [activeSection]);
+
+      return (
+        <>
+          <Navbar activeSection={activeSection} setActiveSection={setActiveSection} />
+          <Hero setActiveSection={setActiveSection} />
+          <ComplaintForm />
+          <ComplaintTracker />
+          <ScamAlerts />
+          <Dashboard />
+          <Footer />
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
